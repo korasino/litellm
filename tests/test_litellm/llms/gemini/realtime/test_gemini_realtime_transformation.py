@@ -2201,3 +2201,33 @@ def test_gemini_realtime_response_done_reports_no_grounding_when_none_ran():
 
     assert input_details.get("web_search_requests") is None
     assert input_details.get("google_maps_grounding_requests") is None
+
+
+
+def test_gemini_realtime_maps_transcription_keywords():
+    config = GeminiRealtimeConfig()
+    result = config.transform_realtime_request(
+        json.dumps(
+            {
+                "type": "session.update",
+                "session": {
+                    "type": "transcription",
+                    "audio": {
+                        "input": {
+                            "transcription": {
+                                "model": "gemini-3.5-transcribe-live",
+                                "keywords": ["Home Assistant", "Żółta lampa", "Salon"],
+                            }
+                        }
+                    },
+                },
+            }
+        ),
+        "gemini-3.5-transcribe-live",
+        session_configuration_request=None,
+    )
+
+    setup = json.loads(result[0])["setup"]
+    assert setup["inputAudioTranscription"] == {
+        "customVocabulary": ["Home Assistant", "Żółta lampa", "Salon"]
+    }

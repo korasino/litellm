@@ -10,7 +10,7 @@ from litellm.llms.gemini.audio_transcription.transformation import (
 )
 from litellm.llms.gemini.common_utils import GeminiError
 from litellm.types.utils import LlmProviders
-from litellm.utils import ProviderConfigManager
+from litellm.utils import ProviderConfigManager, get_optional_params_transcription
 
 AUDIO_BYTES = b"RIFF....WAVEfmt fake-wav-bytes"
 
@@ -302,3 +302,46 @@ class TestCostRegression:
     def local_cost_map(self, monkeypatch):
         monkeypatch.setenv("LITELLM_LOCAL_MODEL_COST_MAP", "True")
         monkeypatch.setattr(litellm, "model_cost", litellm.get_model_cost_map(url=""))
+
+
+
+def test_get_optional_params_transcription_maps_keywords():
+    keywords = ["Home Assistant", "Żółta lampa", "Salon"]
+
+    optional_params = get_optional_params_transcription(
+        model="gemini-3.5-transcribe",
+        custom_llm_provider="gemini",
+        keywords=keywords,
+    )
+
+    assert optional_params["keywords"] == keywords
+
+
+def test_keywords_map_to_custom_vocabulary(config):
+    request_data = config.transform_audio_transcription_request(
+        model="gemini-3.5-transcribe",
+        audio_file=("sample.wav", AUDIO_BYTES, "audio/wav"),
+        optional_params={"keywords": ["Home Assistant", "Żółta lampa", "Salon"]},
+        litellm_params={},
+    )
+
+    transcription_config = request_data.data["generation_config"]["transcription_config"]
+    assert json.loads(json.dumps(transcription_config)) == {
+        "custom_vocabulary": ["Home Assistant", "Żółta lampa", "Salon"]
+    }
+
+
+def test_keywords_are_omitted_when_word_timestamps_are_enabled(config):
+    request_data = config.transform_audio_transcription_request(
+        model="gemini-3.5-transcribe",
+        audio_file=("sample.wav", AUDIO_BYTES, "audio/wav"),
+        optional_params={
+            "keywords": ["Home Assistant"],
+            "timestamp_granularities": ["word"],
+        },
+        litellm_params={},
+    )
+
+    transcription_config = request_data.data["generation_config"]["transcription_config"]
+    assert "custom_vocabulary" not in transcription_config
+    assert transcription_config["mode"]["timestamp_granularities"] == ("word",)
