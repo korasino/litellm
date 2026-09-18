@@ -101,6 +101,22 @@ def test_keywords_map_to_custom_vocabulary(config):
     }
 
 
+def test_keywords_are_omitted_when_word_timestamps_are_enabled(config):
+    request_data = config.transform_audio_transcription_request(
+        model="gemini-3.5-transcribe",
+        audio_file=("sample.wav", AUDIO_BYTES, "audio/wav"),
+        optional_params={
+            "keywords": ["Home Assistant"],
+            "timestamp_granularities": ["word"],
+        },
+        litellm_params={},
+    )
+
+    transcription_config = request_data.data["generation_config"]["transcription_config"]
+    assert "custom_vocabulary" not in transcription_config
+    assert transcription_config["mode"]["timestamp_granularities"] == ("word",)
+
+
 class TestValidateEnvironment:
     def test_sets_api_key_and_revision_headers(self, config):
         headers = config.validate_environment(
