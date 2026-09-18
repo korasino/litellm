@@ -10394,6 +10394,8 @@ class Router:
         configurable_clientside_auth_params: CONFIGURABLE_CLIENTSIDE_AUTH_PARAMS = None
         reasoning_efforts_initialized = False
         reasoning_efforts_unknown = False
+        supported_endpoints_unknown = False
+        supported_endpoints: list[str] | None = None
         model_list: Final = self.get_model_list(model_name=model_group)
         if model_list is None:
             return None
@@ -10492,6 +10494,7 @@ class Router:
                     output_cost_per_token=output_cost_per_token,
                     litellm_provider=llm_provider,
                     mode=mode,
+                    supported_endpoints=db_model_info.get("supported_endpoints"),
                     supported_openai_params=supported_openai_params,
                     supports_system_messages=None,
                 )
@@ -10580,6 +10583,20 @@ class Router:
                 if model_info.get("rpm", None) is not None and _deployment_rpm is None:
                     _deployment_rpm = model_info.get("rpm")
 
+            deployment_supported_endpoints = model_info.get("supported_endpoints")
+            if deployment_supported_endpoints is None:
+                supported_endpoints_unknown = True
+                supported_endpoints = None
+            elif supported_endpoints is None:
+                if not supported_endpoints_unknown:
+                    supported_endpoints = list(deployment_supported_endpoints)
+            elif not supported_endpoints_unknown:
+                supported_endpoints = [
+                    endpoint
+                    for endpoint in supported_endpoints
+                    if endpoint in deployment_supported_endpoints
+                ]
+
             deployment_reasoning_efforts = (
                 resolve_supported_reasoning_efforts(  # rebind-ok: recalculated per deployment
                     model_info, deployment_is_mapped=deployment_is_mapped
@@ -10618,6 +10635,10 @@ class Router:
                     total_otpm = 0
                 total_otpm += _deployment_otpm
         if model_group_info is not None:
+            model_group_info.supported_endpoints = (
+                None if supported_endpoints_unknown else supported_endpoints
+            )
+
             ## UPDATE WITH TOTAL TPM/RPM FOR MODEL GROUP
             if total_tpm is not None:
                 model_group_info.tpm = total_tpm

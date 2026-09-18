@@ -855,6 +855,55 @@ def test_gemini_realtime_multi_tool_calls_have_unique_item_ids():
     assert responses[1]["output_index"] == 1
 
 
+def test_gemini_realtime_maps_transcription_keywords():
+    config = GeminiRealtimeConfig()
+    result = config.transform_realtime_request(
+        json.dumps(
+            {
+                "type": "session.update",
+                "session": {
+                    "type": "transcription",
+                    "audio": {
+                        "input": {
+                            "transcription": {
+                                "model": "gemini-3.5-transcribe-live",
+                                "keywords": ["Home Assistant", "Żółta lampa", "Salon"],
+                            }
+                        }
+                    },
+                },
+            }
+        ),
+        "gemini-3.5-transcribe-live",
+        session_configuration_request=None,
+    )
+
+    setup = json.loads(result[0])["setup"]
+    assert setup["inputAudioTranscription"] == {
+        "customVocabulary": ["Home Assistant", "Żółta lampa", "Salon"]
+    }
+
+
+def test_gemini_realtime_turn_detection_null_disables_provider_vad():
+    config = GeminiRealtimeConfig()
+    result = config.transform_realtime_request(
+        json.dumps(
+            {
+                "type": "session.update",
+                "session": {
+                    "type": "transcription",
+                    "audio": {"input": {"turn_detection": None}},
+                },
+            }
+        ),
+        "gemini-3.5-transcribe-live",
+        session_configuration_request=None,
+    )
+
+    setup = json.loads(result[0])["setup"]
+    assert setup["realtimeInputConfig"]["automaticActivityDetection"]["disabled"] is True
+
+
 def test_gemini_session_update_includes_input_audio_transcription_default():
     """Verify _handle_session_update includes inputAudioTranscription default."""
     config = GeminiRealtimeConfig()

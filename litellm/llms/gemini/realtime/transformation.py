@@ -332,8 +332,20 @@ class GeminiRealtimeConfig(BaseRealtimeConfig):
                     value=value, optional_params=optional_params
                 )
             elif key == "input_audio_transcription" and value is not None:
-                optional_params["inputAudioTranscription"] = {}
+                transcription_config: dict[str, object] = {}
+                if isinstance(value, dict):
+                    keywords = value.get("keywords")
+                    if isinstance(keywords, list):
+                        vocabulary = [keyword for keyword in keywords if isinstance(keyword, str) and keyword]
+                        if vocabulary:
+                            transcription_config["customVocabulary"] = vocabulary
+                optional_params["inputAudioTranscription"] = transcription_config
             elif key == "turn_detection":
+                if value is None:
+                    optional_params["realtimeInputConfig"] = BidiGenerateContentRealtimeInputConfig(
+                        automaticActivityDetection=AutomaticActivityDetection(disabled=True)
+                    )
+                    continue
                 value_typed = cast(OpenAIRealtimeTurnDetection, value)
                 if (
                     isinstance(value_typed, dict)
@@ -405,6 +417,8 @@ class GeminiRealtimeConfig(BaseRealtimeConfig):
             if isinstance(input_cfg, dict):
                 if "input_audio_transcription" not in normalized and "transcription" in input_cfg:
                     normalized["input_audio_transcription"] = input_cfg["transcription"]
+                if "turn_detection" not in normalized and "turn_detection" in input_cfg:
+                    normalized["turn_detection"] = input_cfg["turn_detection"]
             output_cfg: Final = audio.get("output")
             if isinstance(output_cfg, dict) and output_cfg.get("voice"):
                 normalized["voice"] = output_cfg["voice"]

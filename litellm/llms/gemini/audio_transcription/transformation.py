@@ -47,7 +47,7 @@ class GeminiAudioTranscriptionConfig(BaseAudioTranscriptionConfig):
     def get_supported_openai_params(
         self, model: str
     ) -> list[OpenAIAudioTranscriptionOptionalParams]:  # mutable-ok: BaseAudioTranscriptionConfig signature
-        return ["language", "response_format", "timestamp_granularities"]  # mutable-ok: base contract returns a list
+        return ["language", "keywords", "response_format", "timestamp_granularities"]  # mutable-ok: base contract returns a list
 
     @property
     def supports_subtitle_synthesis(self) -> bool:
@@ -220,6 +220,15 @@ def _language_config(language: object) -> GeminiTranscriptionConfig:
     return language_config
 
 
+def _custom_vocabulary_config(keywords: object) -> GeminiTranscriptionConfig:
+    if not isinstance(keywords, list):
+        return _EMPTY_TRANSCRIPTION_CONFIG
+    vocabulary: Final = tuple(keyword for keyword in keywords if isinstance(keyword, str) and keyword)
+    if not vocabulary:
+        return _EMPTY_TRANSCRIPTION_CONFIG
+    return {"custom_vocabulary": vocabulary}
+
+
 def _timestamp_config(timestamp_granularities: object, response_format: object) -> GeminiTranscriptionConfig:
     wants_word_timestamps: Final = (
         isinstance(timestamp_granularities, list) and "word" in timestamp_granularities
@@ -230,6 +239,7 @@ def _timestamp_config(timestamp_granularities: object, response_format: object) 
 def _build_transcription_config(optional_params: Mapping[str, object]) -> GeminiTranscriptionConfig:
     transcription_config: Final[GeminiTranscriptionConfig] = {
         **_language_config(optional_params.get("language")),
+        **_custom_vocabulary_config(optional_params.get("keywords")),
         **_timestamp_config(optional_params.get("timestamp_granularities"), optional_params.get("response_format")),
     }
     return transcription_config

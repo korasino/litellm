@@ -1127,6 +1127,7 @@ AllEmbeddingInputValues = str | list[str] | list[int] | list[list[int]]
 
 OpenAIAudioTranscriptionOptionalParams = Literal[
     "language",
+    "keywords",
     "prompt",
     "temperature",
     "response_format",

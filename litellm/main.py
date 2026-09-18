@@ -7691,6 +7691,7 @@ def transcription(
     file: FileTypes,
     ## OPTIONAL OPENAI PARAMS ##
     language: str | None = None,
+    keywords: list[str] | None = None,
     prompt: str | None = None,
     response_format: Literal["json", "text", "srt", "verbose_json", "vtt"] | None = None,
     timestamp_granularities: list[Literal["word", "segment"]] | None = None,
@@ -7745,6 +7746,7 @@ def transcription(
     optional_params: Final = get_optional_params_transcription(
         model=model,
         language=language,
+        keywords=keywords,
         prompt=prompt,
         response_format=response_format,
         timestamp_granularities=timestamp_granularities,
