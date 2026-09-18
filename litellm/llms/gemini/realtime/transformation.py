@@ -335,7 +335,15 @@ class GeminiRealtimeConfig(BaseRealtimeConfig):
                     value=value, optional_params=optional_params
                 )
             elif key == "input_audio_transcription" and value is not None:
-                optional_params["inputAudioTranscription"] = {}
+                keywords: Final = value.get("keywords") if isinstance(value, dict) else None
+                vocabulary: Final = (
+                    tuple(keyword for keyword in keywords if isinstance(keyword, str) and keyword)
+                    if isinstance(keywords, list)
+                    else ()
+                )
+                optional_params["inputAudioTranscription"] = (
+                    {"customVocabulary": list(vocabulary)} if vocabulary else {}
+                )
             elif key == "turn_detection" and value is not None:
                 value_typed = cast(OpenAIRealtimeTurnDetection, value)
                 if (
