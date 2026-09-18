@@ -1115,7 +1115,7 @@ def _is_vertex_403_error(*, original_exception: _ProviderHTTPException, error_st
     status_code = getattr(original_exception, "status_code", None)
     if isinstance(status_code, int):
         return status_code == 403
-    return re.search(r"\b403\b", error_str) is not None
+    return re.search(r"(?<![\d.])403(?![\d.])", error_str) is not None
 
 
 def _map_vertex_exception(
