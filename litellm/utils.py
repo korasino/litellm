@@ -3358,6 +3358,7 @@ def get_optional_params_transcription(
     model: str,
     custom_llm_provider: str,
     language: str | None = None,
+    keywords: list[str] | None = None,
     prompt: str | None = None,
     response_format: str | None = None,
     temperature: int | None = None,
@@ -3379,6 +3380,7 @@ def get_optional_params_transcription(
 
     default_params: Final = {
         "language": None,
+        "keywords": None,
         "prompt": None,
         "response_format": None,
         "temperature": None,  # openai defaults this to 0
