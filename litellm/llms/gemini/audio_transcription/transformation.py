@@ -220,8 +220,8 @@ def _language_config(language: object) -> GeminiTranscriptionConfig:
     return language_config
 
 
-def _custom_vocabulary_config(keywords: object) -> GeminiTranscriptionConfig:
-    if not isinstance(keywords, list):
+def _custom_vocabulary_config(keywords: object, timestamps_enabled: bool) -> GeminiTranscriptionConfig:
+    if timestamps_enabled or not isinstance(keywords, list):
         return _EMPTY_TRANSCRIPTION_CONFIG
     vocabulary: Final = tuple(keyword for keyword in keywords if isinstance(keyword, str) and keyword)
     if not vocabulary:
@@ -237,10 +237,14 @@ def _timestamp_config(timestamp_granularities: object, response_format: object) 
 
 
 def _build_transcription_config(optional_params: Mapping[str, object]) -> GeminiTranscriptionConfig:
+    timestamp_config: Final = _timestamp_config(
+        optional_params.get("timestamp_granularities"),
+        optional_params.get("response_format"),
+    )
     transcription_config: Final[GeminiTranscriptionConfig] = {
         **_language_config(optional_params.get("language")),
-        **_custom_vocabulary_config(optional_params.get("keywords")),
-        **_timestamp_config(optional_params.get("timestamp_granularities"), optional_params.get("response_format")),
+        **_custom_vocabulary_config(optional_params.get("keywords"), bool(timestamp_config)),
+        **timestamp_config,
     }
     return transcription_config
 
