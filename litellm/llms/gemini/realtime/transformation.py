@@ -147,6 +147,7 @@ class GeminiRealtimeConfig(BaseRealtimeConfig):
         # Store per-chunk duration so later rate changes cannot reprice earlier audio.
         self._unbilled_input_audio_seconds: float = 0.0
         self._input_audio_sample_rate_hz: int = GEMINI_LIVE_INPUT_AUDIO_SAMPLE_RATE_HZ
+        self._manual_activity_started = False
 
     def is_setup_message(self, msg_obj: dict) -> bool:
         return "setup" in msg_obj
@@ -262,6 +263,7 @@ class GeminiRealtimeConfig(BaseRealtimeConfig):
     def _handle_input_audio_buffer_commit_or_end(self, session_configuration_request: str | None) -> list[str]:
         """Map OpenAI buffer commit/end to Gemini Live turn-boundary signals."""
         if self._manual_turn_detection_enabled(session_configuration_request):
+            self._manual_activity_started = False
             realtime_input_dict: BidiGenerateContentRealtimeInput = {
                 "activityEnd": True,
             }
@@ -667,6 +669,9 @@ class GeminiRealtimeConfig(BaseRealtimeConfig):
             return self._handle_conversation_item(json_message)
 
         if msg_type == "input_audio_buffer.append":
+            if self._manual_turn_detection_enabled(session_configuration_request) and not self._manual_activity_started:
+                messages.append(json.dumps({"realtimeInput": {"activityStart": True}}))
+                self._manual_activity_started = True
             audio_b64: Final = json_message["audio"]
             if isinstance(audio_b64, str):
                 self._unbilled_input_audio_seconds += _base64_decoded_byte_count(audio_b64) / (
