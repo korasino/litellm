@@ -3174,3 +3174,116 @@ def test_upsert_deployment_clears_stale_budget_config(monkeypatch):
 
     router.upsert_deployment(deployment=unbudgeted)
     assert budget_limiter._get_budget_config_for_deployment(model_id) is None
+
+
+
+def test_model_group_info_supported_endpoints():
+    router = Router(
+        model_list=[
+            {
+                "model_name": "model-group",
+                "litellm_params": {"model": "hosted_vllm/model"},
+                "model_info": {
+                    "id": "model-deployment",
+                    "mode": "chat",
+                    "supported_endpoints": ["/v1/chat/completions"],
+                },
+            }
+        ]
+    )
+
+    info = router.get_model_group_info("model-group")
+
+    assert info is not None
+    assert info.supported_endpoints == ["/v1/chat/completions"]
+
+
+@pytest.mark.parametrize(
+    ("second_endpoints", "expected"),
+    [
+        (["/v1/chat/completions"], ["/v1/chat/completions"]),
+        (["/v1/audio/transcriptions"], []),
+    ],
+)
+def test_model_group_info_intersects_supported_endpoints(second_endpoints, expected):
+    router = Router(
+        model_list=[
+            {
+                "model_name": "model-group",
+                "litellm_params": {"model": "hosted_vllm/model-responses"},
+                "model_info": {
+                    "id": "model-responses",
+                    "mode": "chat",
+                    "supported_endpoints": ["/v1/chat/completions", "/v1/responses"],
+                },
+            },
+            {
+                "model_name": "model-group",
+                "litellm_params": {"model": "hosted_vllm/model-chat"},
+                "model_info": {
+                    "id": "model-chat",
+                    "mode": "chat",
+                    "supported_endpoints": second_endpoints,
+                },
+            },
+        ]
+    )
+
+    info = router.get_model_group_info("model-group")
+
+    assert info is not None
+    assert info.supported_endpoints == expected
+
+
+def test_model_group_info_unknown_supported_endpoints_are_not_advertised():
+    router = Router(
+        model_list=[
+            {
+                "model_name": "model-group",
+                "litellm_params": {"model": "hosted_vllm/model-known"},
+                "model_info": {
+                    "id": "model-known",
+                    "mode": "chat",
+                    "supported_endpoints": ["/v1/chat/completions"],
+                },
+            },
+            {
+                "model_name": "model-group",
+                "litellm_params": {"model": "hosted_vllm/model-unknown"},
+                "model_info": {"id": "model-unknown", "mode": "chat"},
+            },
+        ]
+    )
+
+    info = router.get_model_group_info("model-group")
+
+    assert info is not None
+    assert info.supported_endpoints is None
+
+
+def test_model_group_info_uses_catalog_supported_endpoints(monkeypatch):
+    model = "catalog-supported-endpoints-test"
+    monkeypatch.setitem(
+        litellm.model_cost,
+        model,
+        {
+            "key": model,
+            "litellm_provider": "openai",
+            "mode": "responses",
+            "supported_endpoints": ["/v1/responses"],
+        },
+    )
+    router = Router(
+        model_list=[
+            {
+                "model_name": "model-group",
+                "litellm_params": {"model": model},
+                "model_info": {"id": "catalog-deployment"},
+            }
+        ]
+    )
+
+    info = router.get_model_group_info("model-group")
+
+    assert info is not None
+    assert info.supported_endpoints == ["/v1/responses"]

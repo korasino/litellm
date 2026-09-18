@@ -10773,6 +10773,7 @@ class Router:
                     output_cost_per_token=output_cost_per_token,
                     litellm_provider=llm_provider,
                     mode=mode,
+                    supported_endpoints=db_model_info.get("supported_endpoints"),
                     supported_openai_params=supported_openai_params,
                     supports_system_messages=None,
                 )
@@ -10861,6 +10862,18 @@ class Router:
                     _deployment_tpm = model_info.get("tpm")
                 if model_info.get("rpm", None) is not None and _deployment_rpm is None:
                     _deployment_rpm = model_info.get("rpm")
+
+            deployment_supported_endpoints: Final = model_info.get("supported_endpoints")
+            if model_group_info.supported_endpoints is not None:
+                if deployment_supported_endpoints is None:
+                    model_group_info.supported_endpoints = None
+                else:
+                    allowed_endpoints: Final = frozenset(deployment_supported_endpoints)
+                    model_group_info.supported_endpoints = [
+                        endpoint
+                        for endpoint in model_group_info.supported_endpoints
+                        if endpoint in allowed_endpoints
+                    ]
 
             model_group_info.supports_fast_mode = model_group_info.supports_fast_mode and (
                 AnthropicModelInfo.supports_fast_mode(litellm_model, llm_provider)
