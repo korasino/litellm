@@ -41,6 +41,16 @@ def get_supported_openai_params(
         except BadRequestError:
             return None
 
+    if request_type == "transcription":
+        transcription_provider = custom_llm_provider.split("/")[0]
+        if transcription_provider in LlmProvidersSet:
+            transcription_provider_config = litellm.ProviderConfigManager.get_provider_audio_transcription_config(
+                model=model,
+                provider=LlmProviders(transcription_provider),
+            )
+            if transcription_provider_config is not None:
+                return transcription_provider_config.get_supported_openai_params(model=model)
+
     if custom_llm_provider in LlmProvidersSet:
         provider_config = litellm.ProviderConfigManager.get_provider_chat_config(
             model=model,
