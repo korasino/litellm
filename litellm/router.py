@@ -328,6 +328,51 @@ def _cost_value_as_float(value: str | float | None) -> float | None:
         return None
 
 
+def _model_group_supported_openai_params(
+    *,
+    model: str,
+    llm_provider: str,
+    mode: object,
+    supported_endpoints: object,
+) -> list[str] | None:
+    endpoints = supported_endpoints if isinstance(supported_endpoints, (list, tuple)) else ()
+
+    if mode == "audio_transcription":
+        if "/v1/audio/transcriptions" in endpoints:
+            return litellm.get_supported_openai_params(
+                model=model,
+                custom_llm_provider=llm_provider,
+                request_type="transcription",
+            )
+
+        if (
+            "/v1/realtime" in endpoints
+            or "/v1/realtime/transcription_sessions" in endpoints
+        ):
+            provider_name = llm_provider.split("/")[0]
+            try:
+                provider = LlmProviders(provider_name)
+            except ValueError:
+                return None
+
+            realtime_config = litellm.ProviderConfigManager.get_provider_realtime_config(
+                model=model,
+                provider=provider,
+            )
+            if realtime_config is None:
+                return None
+            return realtime_config.get_supported_input_audio_transcription_params(
+                model=model
+            )
+
+        return None
+
+    return litellm.get_supported_openai_params(
+        model=model,
+        custom_llm_provider=llm_provider,
+    )
+
+
 def model_info_is_active_for_environment(model_info: Mapping[str, object] | None) -> bool:
     """Single owner of the environment-gating rule: a deployment whose model_info names
     `supported_environments` loads only on pods whose LITELLM_ENVIRONMENT is in that list.
@@ -10474,16 +10519,37 @@ class Router:
             except litellm.exceptions.BadRequestError as e:
                 verbose_router_logger.error("litellm.router.py::get_model_group_info() - %s", e)
 
-            if model_info is None:
-                supported_openai_params = litellm.get_supported_openai_params(
-                    model=litellm_model, custom_llm_provider=llm_provider
+            db_model_info = model.get("model_info", {})
+            mode = db_model_info.get("mode")
+            if mode is None and model_info is not None:
+                mode = model_info.get("mode")
+            if mode is None:
+                mode = "chat"
+
+            supported_endpoints = db_model_info.get("supported_endpoints")
+            if supported_endpoints is None and model_info is not None:
+                supported_endpoints = model_info.get("supported_endpoints")
+
+            resolved_supported_openai_params = None
+            if (
+                model_info is None
+                or (
+                    mode == "audio_transcription"
+                    and db_model_info.get("supported_openai_params") is None
                 )
-                if supported_openai_params is None:
+            ):
+                resolved_supported_openai_params = _model_group_supported_openai_params(
+                    model=litellm_model,
+                    llm_provider=llm_provider,
+                    mode=mode,
+                    supported_endpoints=supported_endpoints,
+                )
+
+            if model_info is None:
+                supported_openai_params = resolved_supported_openai_params
+                if supported_openai_params is None and mode != "audio_transcription":
                     supported_openai_params = []
 
-                # Get mode from database model_info if available, otherwise default to "chat"
-                db_model_info = model.get("model_info", {})
-                mode = db_model_info.get("mode", "chat")
                 input_cost_per_token = _cost_value_as_float(db_model_info.get("input_cost_per_token"))
                 output_cost_per_token = _cost_value_as_float(db_model_info.get("output_cost_per_token"))
 
@@ -10496,9 +10562,20 @@ class Router:
                     output_cost_per_token=output_cost_per_token,
                     litellm_provider=llm_provider,
                     mode=mode,
-                    supported_endpoints=db_model_info.get("supported_endpoints"),
+                    supported_endpoints=supported_endpoints,
                     supported_openai_params=supported_openai_params,
                     supports_system_messages=None,
+                )
+            elif (
+                mode == "audio_transcription"
+                and db_model_info.get("supported_openai_params") is None
+            ):
+                model_info = cast(
+                    ModelInfo,
+                    {
+                        **model_info,
+                        "supported_openai_params": resolved_supported_openai_params,
+                    },
                 )
 
             if model_group_info is None:
