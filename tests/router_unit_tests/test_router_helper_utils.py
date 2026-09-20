@@ -2976,3 +2976,76 @@ def test_model_group_info_unknown_supported_openai_params_are_not_advertised():
     assert info is not None
     assert info.supported_openai_params is None
 
+
+
+def test_model_group_info_uses_transcription_capabilities_for_batch_stt():
+    with patch(
+        "litellm.get_supported_openai_params",
+        return_value=["language", "response_format"],
+    ) as get_supported_params:
+        router = Router(
+            model_list=[
+                {
+                    "model_name": "batch-stt",
+                    "litellm_params": {"model": "hosted_vllm/transcribe"},
+                    "model_info": {
+                        "id": "batch-stt-deployment",
+                        "mode": "audio_transcription",
+                        "supported_endpoints": ["/v1/audio/transcriptions"],
+                    },
+                }
+            ]
+        )
+
+        info = router.get_model_group_info("batch-stt")
+
+    assert info is not None
+    assert info.supported_openai_params == ["language", "response_format"]
+    get_supported_params.assert_called_once_with(
+        model="transcribe",
+        custom_llm_provider="hosted_vllm",
+        request_type="transcription",
+    )
+
+
+def test_model_group_info_uses_realtime_transcription_sub_capabilities():
+    realtime_config = MagicMock()
+    realtime_config.get_supported_input_audio_transcription_params.return_value = [
+        "language",
+        "keywords",
+    ]
+
+    with (
+        patch.object(
+            litellm.ProviderConfigManager,
+            "get_provider_realtime_config",
+            return_value=realtime_config,
+        ) as get_realtime_config,
+        patch("litellm.get_supported_openai_params") as get_supported_params,
+    ):
+        router = Router(
+            model_list=[
+                {
+                    "model_name": "realtime-stt",
+                    "litellm_params": {"model": "hosted_vllm/realtime"},
+                    "model_info": {
+                        "id": "realtime-stt-deployment",
+                        "mode": "audio_transcription",
+                        "supported_endpoints": ["/v1/realtime"],
+                    },
+                }
+            ]
+        )
+
+        info = router.get_model_group_info("realtime-stt")
+
+    assert info is not None
+    assert info.supported_openai_params == ["language", "keywords"]
+    get_realtime_config.assert_called_once_with(
+        model="realtime",
+        provider=litellm.LlmProviders.HOSTED_VLLM,
+    )
+    realtime_config.get_supported_input_audio_transcription_params.assert_called_once_with(
+        model="realtime"
+    )
+    get_supported_params.assert_not_called()
