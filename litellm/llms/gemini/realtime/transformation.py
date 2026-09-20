@@ -346,7 +346,11 @@ class GeminiRealtimeConfig(BaseRealtimeConfig):
                         ]
                     keywords = value.get("keywords")
                     if isinstance(keywords, list):
-                        vocabulary = [keyword for keyword in keywords if isinstance(keyword, str) and keyword]
+                        vocabulary = [
+                            keyword
+                            for keyword in keywords
+                            if isinstance(keyword, str) and keyword
+                        ]
                         if vocabulary:
                             transcription_config["customVocabulary"] = vocabulary
                 optional_params["inputAudioTranscription"] = transcription_config
