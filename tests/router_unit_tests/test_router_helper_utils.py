@@ -2916,6 +2916,7 @@ def test_model_group_info_unknown_supported_endpoints_are_not_advertised():
     assert info is not None
     assert info.supported_endpoints is None
 
+
 def test_model_group_info_intersects_supported_openai_params():
     router = Router(
         model_list=[
