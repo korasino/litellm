@@ -2291,6 +2291,22 @@ def test_get_provider_audio_transcription_config():
         )
 
 
+def test_get_supported_openai_params_uses_gemini_transcription_config():
+    from litellm.litellm_core_utils.get_supported_openai_params import (
+        get_supported_openai_params,
+    )
+
+    params = get_supported_openai_params(
+        model="gemini-3.5-transcribe",
+        custom_llm_provider="gemini",
+        request_type="transcription",
+    )
+
+    assert params is not None
+    assert "language" in params
+    assert "max_completion_tokens" not in params
+
+
 @pytest.mark.parametrize(
     "model, expected_bool",
     [
