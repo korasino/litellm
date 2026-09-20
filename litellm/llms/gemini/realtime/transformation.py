@@ -312,6 +312,9 @@ class GeminiRealtimeConfig(BaseRealtimeConfig):
             "voice",
         ]
 
+    def get_supported_input_audio_transcription_params(self, model: str) -> list[str]:
+        return ["language", "keywords"]
+
     def map_openai_params(self, optional_params: dict, non_default_params: dict) -> dict:
         if "generationConfig" not in optional_params:
             optional_params["generationConfig"] = {}
