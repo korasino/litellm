@@ -10396,6 +10396,8 @@ class Router:
         reasoning_efforts_unknown = False
         supported_endpoints_unknown = False
         supported_endpoints: list[str] | None = None
+        supported_openai_params_unknown = False
+        supported_openai_params: list[str] | None = None
         model_list: Final = self.get_model_list(model_name=model_group)
         if model_list is None:
             return None
@@ -10573,11 +10575,6 @@ class Router:
 
                 if model_info.get("supports_reasoning", None) is not None and model_info["supports_reasoning"] is True:
                     model_group_info.supports_reasoning = True
-                if (
-                    model_info.get("supported_openai_params", None) is not None
-                    and model_info["supported_openai_params"] is not None
-                ):
-                    model_group_info.supported_openai_params = model_info["supported_openai_params"]
                 if model_info.get("tpm", None) is not None and _deployment_tpm is None:
                     _deployment_tpm = model_info.get("tpm")
                 if model_info.get("rpm", None) is not None and _deployment_rpm is None:
@@ -10595,6 +10592,20 @@ class Router:
                     endpoint
                     for endpoint in supported_endpoints
                     if endpoint in deployment_supported_endpoints
+                ]
+
+            deployment_supported_openai_params = model_info.get("supported_openai_params")
+            if deployment_supported_openai_params is None:
+                supported_openai_params_unknown = True
+                supported_openai_params = None
+            elif supported_openai_params is None:
+                if not supported_openai_params_unknown:
+                    supported_openai_params = list(deployment_supported_openai_params)
+            elif not supported_openai_params_unknown:
+                supported_openai_params = [
+                    param
+                    for param in supported_openai_params
+                    if param in deployment_supported_openai_params
                 ]
 
             deployment_reasoning_efforts = (
@@ -10637,6 +10648,11 @@ class Router:
         if model_group_info is not None:
             model_group_info.supported_endpoints = (
                 None if supported_endpoints_unknown else supported_endpoints
+            )
+            model_group_info.supported_openai_params = (
+                None
+                if supported_openai_params_unknown
+                else supported_openai_params
             )
 
             ## UPDATE WITH TOTAL TPM/RPM FOR MODEL GROUP
