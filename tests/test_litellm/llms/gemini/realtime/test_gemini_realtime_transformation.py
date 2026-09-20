@@ -855,7 +855,7 @@ def test_gemini_realtime_multi_tool_calls_have_unique_item_ids():
     assert responses[1]["output_index"] == 1
 
 
-def test_gemini_realtime_maps_transcription_keywords():
+def test_gemini_realtime_maps_transcription_context():
     config = GeminiRealtimeConfig()
     result = config.transform_realtime_request(
         json.dumps(
@@ -881,7 +881,7 @@ def test_gemini_realtime_maps_transcription_keywords():
 
     setup = json.loads(result[0])["setup"]
     assert setup["inputAudioTranscription"] == {
-        "languageCodes": ["pl"],
+        "languageCodes": ["pl-PL"],
         "customVocabulary": ["Home Assistant", "Żółta lampa", "Salon"],
     }
 
