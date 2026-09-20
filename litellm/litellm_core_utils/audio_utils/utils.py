@@ -136,6 +136,7 @@ BARE_ISO_639_1_TO_BCP47: Final = {
     "fr": "fr-FR",
     "it": "it-IT",
     "pt": "pt-BR",
+    "pl": "pl-PL",
     "ja": "ja-JP",
     "ko": "ko-KR",
     "zh": "zh-CN",
