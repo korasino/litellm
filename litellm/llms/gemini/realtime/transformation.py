@@ -12,6 +12,9 @@ from typing_extensions import ReadOnly, Required, TypedDict
 import litellm
 from litellm import verbose_logger
 from litellm._uuid import uuid
+from litellm.litellm_core_utils.audio_utils.utils import (
+    normalize_transcription_language_to_bcp47,
+)
 from litellm.litellm_core_utils.litellm_logging import Logging as LiteLLMLoggingObj
 from litellm.llms.base_llm.realtime.transformation import BaseRealtimeConfig
 from litellm.llms.vertex_ai.gemini.vertex_and_google_ai_studio_gemini import (
@@ -336,6 +339,11 @@ class GeminiRealtimeConfig(BaseRealtimeConfig):
             elif key == "input_audio_transcription" and value is not None:
                 transcription_config: dict[str, object] = {}
                 if isinstance(value, dict):
+                    language = value.get("language")
+                    if isinstance(language, str) and language:
+                        transcription_config["languageCodes"] = [
+                            normalize_transcription_language_to_bcp47(language)
+                        ]
                     keywords = value.get("keywords")
                     if isinstance(keywords, list):
                         vocabulary = [keyword for keyword in keywords if isinstance(keyword, str) and keyword]
