@@ -10397,7 +10397,7 @@ class Router:
         supported_endpoints_unknown = False
         supported_endpoints: list[str] | None = None
         supported_openai_params_unknown = False
-        supported_openai_params: list[str] | None = None
+        group_supported_openai_params: list[str] | None = None
         model_list: Final = self.get_model_list(model_name=model_group)
         if model_list is None:
             return None
@@ -10598,13 +10598,15 @@ class Router:
             if deployment_supported_openai_params is None:
                 supported_openai_params_unknown = True
                 supported_openai_params = None
-            elif supported_openai_params is None:
+            elif group_supported_openai_params is None:
                 if not supported_openai_params_unknown:
-                    supported_openai_params = list(deployment_supported_openai_params)
+                    group_supported_openai_params = list(
+                        deployment_supported_openai_params
+                    )
             elif not supported_openai_params_unknown:
-                supported_openai_params = [
+                group_supported_openai_params = [
                     param
-                    for param in supported_openai_params
+                    for param in group_supported_openai_params
                     if param in deployment_supported_openai_params
                 ]
 
@@ -10652,7 +10654,7 @@ class Router:
             model_group_info.supported_openai_params = (
                 None
                 if supported_openai_params_unknown
-                else supported_openai_params
+                else group_supported_openai_params
             )
 
             ## UPDATE WITH TOTAL TPM/RPM FOR MODEL GROUP
