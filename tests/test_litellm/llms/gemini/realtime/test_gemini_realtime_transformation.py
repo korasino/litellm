@@ -867,6 +867,7 @@ def test_gemini_realtime_maps_transcription_keywords():
                         "input": {
                             "transcription": {
                                 "model": "gemini-3.5-transcribe-live",
+                                "language": "pl",
                                 "keywords": ["Home Assistant", "Żółta lampa", "Salon"],
                             }
                         }
@@ -880,7 +881,8 @@ def test_gemini_realtime_maps_transcription_keywords():
 
     setup = json.loads(result[0])["setup"]
     assert setup["inputAudioTranscription"] == {
-        "customVocabulary": ["Home Assistant", "Żółta lampa", "Salon"]
+        "languageCodes": ["pl"],
+        "customVocabulary": ["Home Assistant", "Żółta lampa", "Salon"],
     }
 
 
