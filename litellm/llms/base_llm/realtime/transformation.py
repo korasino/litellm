@@ -74,6 +74,10 @@ class BaseRealtimeConfig(ABC):
     def unbilled_usage_on_session_close(self, model: str) -> RealtimeInputAudioTranscriptionUsage | None:
         return None
 
+    def get_supported_input_audio_transcription_params(self, model: str) -> list[str]:
+        """Return supported fields inside OpenAI input_audio_transcription."""
+        return []
+
     def transform_session_created_event(
         self,
         model: str,
