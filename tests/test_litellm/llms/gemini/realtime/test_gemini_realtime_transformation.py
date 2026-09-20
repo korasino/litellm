@@ -2510,3 +2510,11 @@ def test_unbilled_usage_on_session_close_flushes_trailing_audio(patch_gemini_tra
     }
     assert usage == expected
     assert config.unbilled_usage_on_session_close("gemini-3.5-transcribe-live") is None
+
+
+def test_gemini_realtime_transcription_capabilities():
+    config = GeminiRealtimeConfig()
+
+    assert config.get_supported_input_audio_transcription_params(
+        "gemini-2.5-flash"
+    ) == ["language", "keywords"]
