@@ -564,6 +564,10 @@ class GeminiRealtimeConfig(BaseRealtimeConfig):
             generation_config.setdefault("responseModalities", [GeminiRealtimeConfig._default_response_modality(model)])
             new_overrides.setdefault("inputAudioTranscription", {})
             new_overrides["model"] = f"models/{model}"
+            verbose_logger.debug(
+                "Gemini Realtime: inputAudioTranscription=%s",
+                new_overrides.get("inputAudioTranscription"),
+            )
             verbose_logger.debug("Gemini Realtime: Sending initial setup with tools to backend")
             return [json.dumps({"setup": self._finalize_gemini_live_setup(model, new_overrides)})]
 
