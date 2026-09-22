@@ -1,7 +1,8 @@
 from enum import Enum
+from collections.abc import Mapping
 from typing import Any, Literal
 
-from typing_extensions import Required, TypedDict
+from typing_extensions import Never, Required, TypedDict
 
 from .vertex_ai import (
     GenerationConfig,
@@ -93,11 +94,11 @@ class BidiGenerateContentRealtimeInput(TypedDict, total=False):
     audioStreamEnd: bool
     """Output only. If true, indicates that the audio stream has ended."""
 
-    activityStart: bool
-    """Output only. If true, indicates that the activity has started."""
+    activityStart: Mapping[str, Never]
+    """Signals that manual activity has started with an empty object."""
 
-    activityEnd: bool
-    """Output only. If true, indicates that the activity has ended."""
+    activityEnd: Mapping[str, Never]
+    """Signals that manual activity has ended with an empty object."""
 
 
 StartOfSpeechSensitivityEnum = Literal[
