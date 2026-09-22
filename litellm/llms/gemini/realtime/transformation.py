@@ -12,6 +12,10 @@ from typing_extensions import ReadOnly, Required, TypedDict
 import litellm
 from litellm import verbose_logger
 from litellm._uuid import uuid
+from litellm.litellm_core_utils.audio_utils.utils import (
+    normalize_transcription_keywords,
+    normalize_transcription_language_to_bcp47,
+)
 from litellm.litellm_core_utils.litellm_logging import Logging as LiteLLMLoggingObj
 from litellm.llms.base_llm.realtime.transformation import BaseRealtimeConfig
 from litellm.llms.vertex_ai.gemini.vertex_and_google_ai_studio_gemini import (
@@ -107,6 +111,27 @@ class _OpenAIRealtimeClientEvent(TypedDict, total=False):
     audio: ReadOnly[Required[str]]
     session: ReadOnly[dict[str, object]]
     item: ReadOnly[dict[str, object]]
+
+
+class _GeminiLiveInputAudioTranscription(TypedDict, total=False):
+    languageCodes: ReadOnly[tuple[str, ...]]
+    customVocabulary: ReadOnly[tuple[str, ...]]
+
+
+def _map_input_audio_transcription(value: object) -> _GeminiLiveInputAudioTranscription:
+    empty_config: Final[_GeminiLiveInputAudioTranscription] = {}
+    if not isinstance(value, Mapping):
+        return empty_config
+    language: Final = value.get("language")
+    language_codes: Final = (
+        (normalize_transcription_language_to_bcp47(language),) if isinstance(language, str) and language else ()
+    )
+    custom_vocabulary: Final = normalize_transcription_keywords(value.get("keywords"))
+    transcription_config: Final[_GeminiLiveInputAudioTranscription] = {
+        **({"languageCodes": language_codes} if language_codes else {}),
+        **({"customVocabulary": custom_vocabulary} if custom_vocabulary else {}),
+    }
+    return transcription_config
 
 
 def _parse_setup(session_configuration_request: str) -> BidiGenerateContentSetup:
@@ -332,7 +357,7 @@ class GeminiRealtimeConfig(BaseRealtimeConfig):
                     value=value, optional_params=optional_params
                 )
             elif key == "input_audio_transcription" and value is not None:
-                optional_params["inputAudioTranscription"] = {}
+                optional_params["inputAudioTranscription"] = _map_input_audio_transcription(value)
             elif key == "turn_detection":
                 value_typed = cast(OpenAIRealtimeTurnDetection, value)
                 if (
